@@ -3,6 +3,7 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema
 import org.apache.flink.connector.kafka.source.KafkaSource
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
+import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala._
 
 import java.io.IOException
@@ -11,18 +12,16 @@ import java.sql.DriverManager
 object ApacheFlink {
 
   def main(args: Array[String]): Unit = {
-//    val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
-
-//    val conf = new Configuration()
     val env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI()
-
+    env.enableCheckpointing(1000, CheckpointingMode.AT_LEAST_ONCE)
+    env.getCheckpointConfig.setCheckpointStorage("file:///Users/airat/Desktop/tmp")
     env.setParallelism(1)
 
     val kafkaSource = KafkaSource.builder()
       .setBootstrapServers("localhost:9092")
       .setTopics("wikimedia_recentchange2")
       .setGroupId("myGroup")
-      .setStartingOffsets(OffsetsInitializer.latest())
+      .setStartingOffsets(OffsetsInitializer.committedOffsets())
       .setValueOnlyDeserializer(new SimpleStringSchema())
       .build()
 
@@ -52,6 +51,5 @@ object ApacheFlink {
           println("Данная операция была прервана " + c.printStackTrace())
       }
     })
-//    println("///////" + count / ((System.nanoTime() - time) / 1e9d) + " tps")
   }
 }
